@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Major Assignment 4</title>
+    <div class="container">
+        <h1>Major Assignment 4</h1>
+        <h2>Jonathan Carreiro</h2>
+
+    </div>
+
+    <script src="js/d3.js"></script>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="/resources/demos/style.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
+
+
+    <style>
+        svg{
+            width: 80vw;
+            height: 75vh;
+        }
+
+
+        #time
+        {
+            position: absolute;
+            top:15px;
+            left: 15px;
+            font-family: sans-serif;
+            font-size: 12pt;
+        }
+
+        .container{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+    </style>
+
+
+</head>
+
+
+<body>
+    <p>
+        <label for="amount">Data range:</label>
+        <input type="text" id="amount" readonly style="border:0; color:#f6931f; font-weight:bold;">
+    </p>
+    <div id="slider-range"></div>
+<div class="container">
+    <svg width="80vw" viewbox="0 0 512 512"></svg>
+
+</div>
+
+<div id='time'>
+</div>
+
+
+<script>
+
+    // Read in data and select thee svg
+    const timeSeries = 'data/Data_CT.csv';
+    let svg = d3.select("svg");
+
+    // path generator
+    const path = d3.geoPath();
+
+    // Function to plot the data as a contour map
+    function plot_contour(data, min, max)
+    {
+        // data dimensions
+        let m= 512, n= 512;
+
+        // Clear any paths that are in the svg for future update calls
+        d3.select("g").remove()
+
+        console.log(data)
+        console.log(min)
+        console.log(max)
+
+
+        /////////////////COLOR CODING/////////////////////////////
+        let colorScale = d3.scaleLinear()
+            .domain(d3.range(min,max,
+                parseInt(Math.abs(max-min)/6.5)))
+            .range(["#0d1a50", "#3e5eba", "#2b83ba",
+                "#abdda4", "#ffffbf", "#fdae61", "#d7191c"])
+            .interpolate(d3.interpolateHcl);
+
+        ////////////////////////////////////////////////////////////
+
+
+
+        // Step 3 contour generator
+        let contours = d3.contours()
+            .size([m, n])
+            .thresholds(d3.range(min,max,100)) // threshold is 100 degrees
+            (data);
+
+        // Step 4 append contour to path (d)
+        svg.append("g").attr("class","contours")
+            .selectAll("path")
+            .data(contours)
+            .enter()
+            .append("path")
+            .attr("d",function(d){return path(d)})
+            .attr("stroke","black")
+            .attr("stroke-width",".1px")
+            .attr("stroke-linejoin", "round")
+            .attr("fill",
+                function (d) {
+                    return colorScale(d.value)
+                })
+    }
+
+    // Update function that calls the contour function with the specified min and max
+    function update(data, min, max){
+        plot_contour(data, min, max)
+    }
+
+    // Reading in the data as a csv
+    d3.csv(timeSeries).then(function (data){
+
+        // Turning the csv into a list of values
+        let values_T= [];
+        data.forEach(function (d) {
+            values_T.push(+d[0])
+        });
+
+        // The call that will create the initial contour map
+        plot_contour(values_T, 0, 3024)
+
+        // Function for the slider that will update the contour map on change
+        $( function() {
+            // Creates the slider
+            $( "#slider-range" ).slider({
+                range: true,
+                min: 0,
+                max: 3024,
+                values: [ 0, 3024 ],
+                // Called when the slider is used
+                slide: function( event, ui ) {
+                    $( "#amount" ).val(ui.values[ 0 ] + " - " + ui.values[ 1 ] );
+                    const minimum = ui.values[0]; // get the value of the slider
+                    const maximum = ui.values[1]
+                    update(values_T, minimum, maximum)
+                }
+            });
+            // Display for the slider
+            $( "#amount" ).val($( "#slider-range" ).slider( "values", 0 ) +
+                " - " + $( "#slider-range" ).slider( "values", 1 ) );
+        } );
+    })
+
+</script>
+</body>
+</html>
